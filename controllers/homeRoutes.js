@@ -2,16 +2,19 @@ const router = require("express").Router();
 const { Post, User, Comment } = require("../models");
 const withAuth = require("../utils/auth");
 
-router.get("/", async (req, res) => {
+router.get('/', async (req, res) => {
   try {
+    // Get all posts and Join with user data
     const postData = await Post.findAll({
       include: [
         {
           model: User,
-          attributes: ["username"],
+          attributes: ["name"],
         },
       ],
     });
+
+    // // Serialize data so the template can read it
     const posts = postData.map((post) => post.get({ plain: true }));
 
     res.render("homepage", {
@@ -23,20 +26,20 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/post/:id", withAuth, async (req, res) => {
+router.get("/post/:id", async (req, res) => {
   try {
     const postData = await Post.findByPk(req.params.id, {
       include: [
         {
           model: User,
-          attributes: ["username"],
+          attributes: ["name"],
         },
         {
           model: Comment,
           include: [
             {
               model: User,
-              attributes: ["username"],
+              attributes: ["name"],
             },
           ],
         },
@@ -44,14 +47,14 @@ router.get("/post/:id", withAuth, async (req, res) => {
     });
 
     const post = postData.get({ plain: true });
-    const isOwner = post.user_id == req.session.user_id;
+    // const isOwner = post.user_id == req.session.user_id;
+
     res.render("post", {
       ...post,
-      is_owner: isOwner,
+      // is_owner: isOwner,
       logged_in: req.session.logged_in,
     });
   } catch (err) {
-    console.log(err);
     res.status(500).json(err);
   }
 });
@@ -65,7 +68,7 @@ router.get("/dashboard", withAuth, async (req, res) => {
       include: [
         {
           model: User,
-          attributes: ["username"],
+          attributes: ["name"],
         },
       ],
     });
@@ -81,25 +84,27 @@ router.get("/dashboard", withAuth, async (req, res) => {
 });
 
 router.get("/add-post", (req, res) => {
-  res.render("add-post", {
-    logged_in: true,
-  });
+  if (req.session.logged_in) {
+    res.render("add-post");
+    return
+  }
+  res.render("Login");
 });
 
-router.get("/modify-post", async (req, res) => {
+router.get("/edit-post", async (req, res) => {
   try {
-    const postData = await Psot.findByPk(req.params.id, {
+    const postData = await Post.findByPk(req.params.id, {
       include: [
         {
           model: User,
-          attributes: ["username"],
+          attributes: ["name"],
         },
       ],
     });
 
     const post = postData.get({ plain: true });
 
-    res.render("modify-post", {
+    res.render("edit-post", {
       ...post,
       logged_in: req.session.logged_in,
     });
@@ -114,7 +119,7 @@ router.get("/add-comment", async (req, res) => {
       include: [
         {
           model: User,
-          attributes: ["username"],
+          attributes: ["name"],
         },
       ],
     });
